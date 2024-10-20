@@ -7,19 +7,27 @@ import { Button } from "@/components/ui/button"
 import { Trophy } from 'lucide-react';
 import { useTheme } from "next-themes"
 import { useTournament } from '@/contexts/TournamentContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export function Sidebar() {
   const { theme, setTheme } = useTheme()
   const router = useRouter();
   const { selectedTournament } = useTournament();
+  const { user } = useAuth();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
   }
 
-  const handleLogout = () => {
-    // Implement logout logic here (e.g., clear session, cookies, etc.)
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
   }
 
   const isDisabled = !selectedTournament;
@@ -85,14 +93,16 @@ export function Sidebar() {
           )}
           {theme === "dark" ? "Light Mode" : "Dark Mode"}
         </Button>
-        <Button 
-          variant="ghost" 
-          className="flex items-center justify-start w-full py-3 px-0 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5 mr-3" />
-          Logout
-        </Button>
+        {user && (
+          <Button 
+            variant="ghost" 
+            className="flex items-center justify-start w-full py-3 px-0 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-5 w-5 mr-3" />
+            Logout
+          </Button>
+        )}
       </div>
     </div>
   );
