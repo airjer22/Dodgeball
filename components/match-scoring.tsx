@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Plus, Minus } from 'lucide-react';
 
 export function MatchScoring({ match, onSave }) {
-  const [teamA, setTeamA] = useState(match.teamA);
-  const [teamB, setTeamB] = useState(match.teamB);
-  const [timer, setTimer] = useState(300); // 5 minutes in seconds
+  const [teamA, setTeamA] = useState({ ...match.teamA, score: match.score?.teamA || 0, pins: match.pins?.teamA || 0 });
+  const [teamB, setTeamB] = useState({ ...match.teamB, score: match.score?.teamB || 0, pins: match.pins?.teamB || 0 });
+  const [timer, setTimer] = useState(1200); // 20 minutes in seconds
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   useEffect(() => {
@@ -53,7 +53,13 @@ export function MatchScoring({ match, onSave }) {
   };
 
   const handleSave = () => {
-    onSave({ ...match, teamA, teamB });
+    const updatedMatch = {
+      ...match,
+      score: { teamA: teamA.score, teamB: teamB.score },
+      pins: { teamA: teamA.pins, teamB: teamB.pins },
+      isCompleted: true
+    };
+    onSave(updatedMatch);
   };
 
   const handleReset = () => {
@@ -63,10 +69,16 @@ export function MatchScoring({ match, onSave }) {
     setIsTimerRunning(false);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Date not set';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>Match Date: {new Date(match.date).toLocaleDateString()}</div>
+        <div>Match Date: {formatDate(match.scheduledDate)}</div>
         <div className={`text-6xl font-bold ${timer <= 60 ? 'text-red-500 text-8xl' : ''}`}>
           {formatTime(timer)}
         </div>
@@ -104,7 +116,7 @@ function TeamCard({ team, onScoreChange, onPinChange }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center">
-          <div className="text-9x1 font-bold mb-4">{team.score}</div>
+          <div className="text-9xl font-bold mb-4">{team.score}</div>
           <div className="flex justify-center space-x-2">
             <Button size="icon" variant="outline" onClick={() => onScoreChange(-1)}><Minus className="h-4 w-4" /></Button>
             <Button size="icon" variant="outline" onClick={() => onScoreChange(1)}><Plus className="h-4 w-4" /></Button>

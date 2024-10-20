@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function TournamentCalendar({ matches, isEditing, scheduledMatches, setScheduledMatches }) {
+export function TournamentCalendar({ matches, isEditing, scheduledMatches, onScheduleMatch, onUnscheduleMatch }) {
   const [date, setDate] = useState(new Date());
   const router = useRouter();
 
@@ -20,29 +20,14 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
     e.preventDefault();
     if (!isEditing) return;
 
-    const matchId = e.dataTransfer.getData('text/plain');
-    const match = matches.find(m => m.id.toString() === matchId);
+    const matchData = JSON.parse(e.dataTransfer.getData('text/plain'));
     const sourceDate = e.dataTransfer.getData('source-date');
-    
-    if (match) {
-      setScheduledMatches(prev => {
-        const newScheduledMatches = { ...prev };
-        const dayKey = day.toISOString().split('T')[0];
-
-        if (sourceDate) {
-          newScheduledMatches[sourceDate] = newScheduledMatches[sourceDate].filter(m => m.id !== match.id);
-        }
-
-        newScheduledMatches[dayKey] = [...(newScheduledMatches[dayKey] || []), match];
-
-        return newScheduledMatches;
-      });
-    }
+    onScheduleMatch(matchData, day, sourceDate);
     e.currentTarget.classList.remove('bg-accent');
   };
 
   const handleDragStart = (e, match, dayKey) => {
-    e.dataTransfer.setData('text/plain', match.id.toString());
+    e.dataTransfer.setData('text/plain', JSON.stringify(match));
     e.dataTransfer.setData('source-date', dayKey);
   };
 
@@ -63,6 +48,13 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
     }
   };
 
+  const handleUnscheduleMatch = (e, match, dayKey) => {
+    e.stopPropagation();
+    if (isEditing) {
+      onUnscheduleMatch(match, dayKey);
+    }
+  };
+
   const renderCell = (day) => {
     const dayKey = day.toISOString().split('T')[0];
     const matchesForDay = scheduledMatches[dayKey] || [];
@@ -74,7 +66,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
         onDrop={(e) => handleDrop(e, day)}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`h-24 border p-1 transition-colors ${
+        className={`h-32 border p-1 transition-colors ${
           isCurrentMonth ? 'bg-background' : 'bg-muted'
         } ${isEditing ? 'cursor-pointer' : ''}`}
       >
@@ -82,17 +74,27 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
           {day.getDate()}
         </div>
         <div className="overflow-y-auto h-[calc(100%-1.5rem)]">
-          {matchesForDay.map((match, index) => (
+          {matchesForDay.map((match) => (
             <Card 
-              key={`${match.id}-${index}`} 
-              className={`mt-1 ${match.isCompleted ? 'bg-green-500' : 'bg-primary'} text-primary-foreground cursor-pointer`}
+              key={match.id} 
+              className={`mb-1 ${match.isCompleted ? 'bg-green-500' : 'bg-primary'} text-primary-foreground ${isEditing ? 'cursor-move' : 'cursor-pointer'} relative`}
               draggable={isEditing}
               onDragStart={(e) => handleDragStart(e, match, dayKey)}
               onClick={() => handleMatchClick(match)}
             >
               <CardContent className="p-1 text-xs">
-                {match.teams.join(' vs ')}
-                {match.isCompleted && ` (${match.score})`}
+                <div>{match.teamAName} vs {match.teamBName}</div>
+                {match.isCompleted && <div>({match.score.teamA}-{match.score.teamB})</div>}
+                {isEditing && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-0 right-0 h-4 w-4 p-0"
+                    onClick={(e) => handleUnscheduleMatch(e, match, dayKey)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -113,7 +115,16 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
       calendarDays.push(day);
     }
 
-    return calendarDays.map(renderCell);
+    return (
+      <div className="grid grid-cols-7 gap-1">
+        {DAYS_OF_WEEK.map(day => (
+          <div key={day} className="text-center font-semibold">
+            {day}
+          </div>
+        ))}
+        {calendarDays.map(renderCell)}
+      </div>
+    );
   };
 
   const prevMonth = () => {
@@ -125,7 +136,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
   };
 
   return (
-    <div className="w-3/4 overflow-y-auto">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <Button onClick={prevMonth} variant="outline" size="icon">
           <ChevronLeft className="h-4 w-4" />
@@ -137,14 +148,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-1">
-        {DAYS_OF_WEEK.map(day => (
-          <div key={day} className="text-center font-semibold">
-            {day}
-          </div>
-        ))}
-        {renderCalendar()}
-      </div>
+      {renderCalendar()}
     </div>
   );
 }

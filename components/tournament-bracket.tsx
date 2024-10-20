@@ -1,105 +1,125 @@
-import React from 'react';
+"use client"
+
+import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
 
-interface Team {
-  name: string;
-  seed?: number;
-}
+const ROUNDS = ['Round of 16', 'Quarter-Finals', 'Semi-Finals', 'Final'];
 
-interface Match {
-  id: number;
-  team1: Team | null;
-  team2: Team | null;
-  date: Date | null;
-}
+export function TournamentBracket({ matches, teams, onUpdateMatch }) {
+  const bracketData = useMemo(() => generateBracket(matches, teams), [matches, teams]);
 
-interface Round {
-  name: string;
-  matches: Match[];
-}
+  function generateBracket(matches, teams) {
+    // Sort teams by their standings (wins, then goal difference, then goals for)
+    const sortedTeams = teams.sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      const aGoalDiff = a.gf - a.ga;
+      const bGoalDiff = b.gf - b.ga;
+      if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+      return b.gf - a.gf;
+    });
 
-interface BracketData {
-  title: string;
-  rounds: Round[];
-}
+    // Generate initial round with seeded matchups
+    let currentRound = [];
+    for (let i = 0; i < sortedTeams.length / 2; i++) {
+      currentRound.push({
+        team1: { team: sortedTeams[i] },
+        team2: { team: sortedTeams[sortedTeams.length - 1 - i] }
+      });
+    }
 
-interface TournamentBracketProps {
-  data: BracketData;
-  onUpdateMatch: (matchId: number, date: Date) => void;
-  isInteractive: boolean;
-}
+    const bracket = [];
 
-export function TournamentBracket({ data, onUpdateMatch, isInteractive }: TournamentBracketProps) {
-  return (
-    <div className="overflow-x-auto">
-      <h2 className="text-2xl font-bold text-center mb-6">{data.title}</h2>
-      <div className="flex justify-between" style={{ minWidth: data.rounds.length * 250 + 'px' }}>
-        {data.rounds.map((round, roundIndex) => (
-          <div key={roundIndex} className="flex-1">
-            <h3 className="text-lg font-semibold text-center mb-4">{round.name}</h3>
-            <div className="space-y-4">
-              {round.matches.map((match, matchIndex) => (
-                <Card key={match.id} className="mx-2">
-                  <CardContent className="p-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="text-xs text-gray-500">
-                        {match.date ? format(match.date, 'MMM dd, yyyy') : 'No date set'}
-                      </div>
-                      {isInteractive && (
-                        <DatePicker 
-                          date={match.date} 
-                          onSelect={(date) => onUpdateMatch(match.id, date)} 
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <TeamSlot team={match.team1} isWinner={roundIndex > 0 && matchIndex % 2 === 0} />
-                      <TeamSlot team={match.team2} isWinner={roundIndex > 0 && matchIndex % 2 === 1} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+    while (currentRound.length > 0) {
+      const roundMatches = currentRound.map(pairing => {
+        const match = matches.find(m => 
+          (m.teamA === pairing.team1.team.id && m.teamB === pairing.team2.team.id) ||
+          (m.teamB === pairing.team1.team.id && m.teamA === pairing.team2.team.id)
+        );
 
-function DatePicker({ date, onSelect }) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
-          {date ? format(date, 'MMM dd, yyyy') : 'Set date'}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={onSelect}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
-  );
-}
+        return {
+          ...pairing,
+          winner: match?.winner ? (match.winner === pairing.team1.team.id ? pairing.team1 : pairing.team2) : null,
+          matchId: match?.id
+        };
+      });
 
-function TeamSlot({ team, isWinner }: { team: Team | null, isWinner: boolean }) {
-  if (!team) {
-    return <div className="h-6 bg-gray-200 rounded"></div>;
+      bracket.push(roundMatches);
+
+      // Prepare next round
+      currentRound = [];
+      for (let i = 0; i < roundMatches.length; i += 2) {
+        currentRound.push({
+          team1: roundMatches[i].winner,
+          team2: roundMatches[i + 1]?.winner
+        });
+      }
+      currentRound = currentRound.filter(match => match.team1 && match.team2);
+    }
+
+    return bracket;
   }
 
   return (
-    <div className={`flex items-center ${isWinner ? 'font-bold' : ''}`}>
-      {team.seed && <span className="mr-2 text-xs">{team.seed}</span>}
-      <span className="truncate">{team.name}</span>
+    <div className="flex justify-between overflow-x-auto">
+      {bracketData.map((round, roundIndex) => (
+        <div key={roundIndex} className="flex-1 min-w-[200px]">
+          <h3 className="text-lg font-semibold text-center mb-4">{ROUNDS[roundIndex]}</h3>
+          <div className="space-y-4">
+            {round.map((match, matchIndex) => (
+              <Card key={matchIndex} className="mb-2">
+                <CardContent className="p-2">
+                  <MatchCard
+                    match={match}
+                    onUpdateMatch={onUpdateMatch}
+                    isCompleted={!!match.winner}
+                  />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
+  );
+}
+
+function MatchCard({ match, onUpdateMatch, isCompleted }) {
+  const handleWinner = (winner) => {
+    if (!isCompleted && match.matchId) {
+      onUpdateMatch(match.matchId, winner.team.id);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <TeamButton
+        team={match.team1}
+        onClick={() => handleWinner(match.team1)}
+        isWinner={match.winner === match.team1}
+        isCompleted={isCompleted}
+      />
+      <TeamButton
+        team={match.team2}
+        onClick={() => handleWinner(match.team2)}
+        isWinner={match.winner === match.team2}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+function TeamButton({ team, onClick, isWinner, isCompleted }) {
+  if (!team) return <div className="h-8"></div>;
+
+  return (
+    <Button
+      onClick={onClick}
+      disabled={isCompleted}
+      variant={isWinner ? "default" : "outline"}
+      className="w-full justify-start"
+    >
+      {team.team.name}
+    </Button>
   );
 }

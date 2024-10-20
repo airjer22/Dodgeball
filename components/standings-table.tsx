@@ -6,9 +6,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ArrowUp, ArrowDown } from 'lucide-react';
 
-export function StandingsTable({ standings }) {
+export function StandingsTable({ standings = [] }) {
+  if (standings.length === 0) {
+    return <p>No standings data available.</p>;
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -20,7 +23,6 @@ export function StandingsTable({ standings }) {
           <TableHead className="text-right">GF</TableHead>
           <TableHead className="text-right">GA</TableHead>
           <TableHead className="text-right">Pins</TableHead>
-          <TableHead className="text-right">Streak</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -33,14 +35,6 @@ export function StandingsTable({ standings }) {
             <TableCell className="text-right">{team.gf}</TableCell>
             <TableCell className="text-right">{team.ga}</TableCell>
             <TableCell className="text-right">{team.pins}</TableCell>
-            <TableCell className="text-right">
-              {team.streak.type === 'win' ? (
-                <ArrowUp className="inline-block text-green-500 mr-1" />
-              ) : (
-                <ArrowDown className="inline-block text-red-500 mr-1" />
-              )}
-              {team.streak.count}
-            </TableCell>
           </TableRow>
         ))}
       </TableBody>

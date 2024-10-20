@@ -8,40 +8,78 @@ import { TournamentList } from '@/components/tournament-list';
 import { CreateTournamentForm } from '@/components/create-tournament-form';
 import { useTournament } from '@/contexts/TournamentContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAllTournaments, deleteTournament } from '@/lib/firestore';
+import { useToast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 export default function Dashboard() {
-  const [tournaments, setTournaments] = useState([
-    { id: 1, name: 'Summer Dodgeball Classic 2025', teams: 8, rounds: 3, date: 'June 15-17, 2025' },
-    { id: 2, name: 'Corporate Challenge 2025', teams: 12, rounds: 4, date: 'August 22-24, 2025' },
-    { id: 3, name: 'Winter Dodgeball Cup 2025', teams: 16, rounds: 5, date: 'December 10-12, 2025' },
-  ]);
-
+  const [tournaments, setTournaments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { selectedTournament, setSelectedTournament } = useTournament();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!user) {
       router.push('/');
+    } else {
+      fetchTournaments();
     }
-  }, [user, loading, router]);
+  }, [user, router]);
+
+  const fetchTournaments = async () => {
+    if (user) {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedTournaments = await getAllTournaments();
+        setTournaments(fetchedTournaments);
+      } catch (error) {
+        console.error("Error fetching tournaments:", error);
+        setError("Failed to fetch tournaments. Please try again.");
+        toast({
+          title: "Error",
+          description: "Failed to fetch tournaments. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const addTournament = (newTournament) => {
-    const tournamentWithId = { id: Date.now(), ...newTournament };
-    setTournaments([tournamentWithId, ...tournaments]);
-    setSelectedTournament(tournamentWithId);
+    setTournaments(prevTournaments => [newTournament, ...prevTournaments]);
+    setSelectedTournament(newTournament);
   };
 
-  const deleteTournament = (id) => {
-    setTournaments(tournaments.filter(tournament => tournament.id !== id));
-    if (selectedTournament && selectedTournament.id === id) {
-      setSelectedTournament(null);
+  const deleteTournamentHandler = async (id) => {
+    try {
+      await deleteTournament(id);
+      setTournaments(prevTournaments => prevTournaments.filter(tournament => tournament.id !== id));
+      if (selectedTournament && selectedTournament.id === id) {
+        setSelectedTournament(null);
+      }
+      toast({
+        title: "Success",
+        description: "Tournament deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting tournament:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete tournament. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleSelectTournament = (tournament) => {
+    router.push(`/dashboard/${tournament.id}`);
+  };
 
   if (!user) {
     return null;
@@ -53,13 +91,25 @@ export default function Dashboard() {
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           <UserProfile user={user} />
-          <TournamentList 
-            tournaments={tournaments} 
-            onDeleteTournament={deleteTournament}
-            onSelectTournament={setSelectedTournament}
-            selectedTournament={selectedTournament}
-          />
-          <CreateTournamentForm onCreateTournament={addTournament} />
+          {error ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : loading ? (
+            <div>Loading tournaments...</div>
+          ) : (
+            <>
+              <TournamentList 
+                tournaments={tournaments} 
+                onDeleteTournament={deleteTournamentHandler}
+                onSelectTournament={handleSelectTournament}
+                selectedTournament={selectedTournament}
+              />
+              <CreateTournamentForm onCreateTournament={addTournament} />
+            </>
+          )}
         </div>
       </main>
     </div>
