@@ -1,19 +1,15 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { UserProfile } from '@/components/user-profile';
 import { TournamentList } from '@/components/tournament-list';
 import { CreateTournamentForm } from '@/components/create-tournament-form';
 import { useTournament } from '@/contexts/TournamentContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
-  const [user, setUser] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: 'https://source.unsplash.com/random/100x100/?portrait'
-  });
-
   const [tournaments, setTournaments] = useState([
     { id: 1, name: 'Summer Dodgeball Classic 2025', teams: 8, rounds: 3, date: 'June 15-17, 2025' },
     { id: 2, name: 'Corporate Challenge 2025', teams: 12, rounds: 4, date: 'August 22-24, 2025' },
@@ -21,6 +17,14 @@ export default function Dashboard() {
   ]);
 
   const { selectedTournament, setSelectedTournament } = useTournament();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
 
   const addTournament = (newTournament) => {
     const tournamentWithId = { id: Date.now(), ...newTournament };
@@ -34,6 +38,14 @@ export default function Dashboard() {
       setSelectedTournament(null);
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground">

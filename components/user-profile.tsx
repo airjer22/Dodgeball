@@ -1,14 +1,19 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { User } from 'firebase/auth';
 
-export function UserProfile({ user }) {
+interface UserProfileProps {
+  user: User;
+}
+
+export function UserProfile({ user }: UserProfileProps) {
   return (
     <div className="flex items-center space-x-4 mb-8">
       <Avatar>
-        <AvatarImage src={user.avatar} alt={user.name} />
-        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+        <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+        <AvatarFallback>{user.displayName ? user.displayName[0] : 'U'}</AvatarFallback>
       </Avatar>
       <div>
-        <h2 className="text-2xl font-bold">{user.name}</h2>
+        <h2 className="text-2xl font-bold">{user.displayName || 'User'}</h2>
         <p className="text-gray-500">{user.email}</p>
       </div>
     </div>
