@@ -14,6 +14,7 @@ export function GuestDashboard({ tournament, onBack }) {
   const [matches, setMatches] = useState([]);
   const [teams, setTeams] = useState([]);
   const [scheduledMatches, setScheduledMatches] = useState({});
+  const [standings, setStandings] = useState([]);
   const { toast } = useToast();
 
   const fetchTournamentData = useCallback(async () => {
@@ -35,6 +36,63 @@ export function GuestDashboard({ tournament, onBack }) {
         }
       });
       setScheduledMatches(scheduled);
+
+      // Calculate standings
+      const standingsData = fetchedTeams.map(team => {
+        const teamMatches = fetchedMatches.filter(match => 
+          match.teamA === team.id || match.teamB === team.id
+        );
+        
+        let wins = 0;
+        let losses = 0;
+        let ties = 0;
+        let gf = 0;
+        let ga = 0;
+        let pins = 0;
+
+        teamMatches.forEach(match => {
+          if (match.isCompleted) {
+            const isTeamA = match.teamA === team.id;
+            const teamScore = isTeamA ? match.score.teamA : match.score.teamB;
+            const opponentScore = isTeamA ? match.score.teamB : match.score.teamA;
+            
+            gf += teamScore;
+            ga += opponentScore;
+            pins += isTeamA ? match.pins.teamA : match.pins.teamB;
+
+            if (teamScore > opponentScore) {
+              wins++;
+            } else if (teamScore < opponentScore) {
+              losses++;
+            } else {
+              ties++;
+            }
+          }
+        });
+
+        return {
+          id: team.id,
+          name: team.name,
+          wins,
+          losses,
+          ties,
+          gf,
+          ga,
+          pins,
+        };
+      });
+
+      // Sort standings
+      standingsData.sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (b.ties !== a.ties) return b.ties - a.ties;
+        const aGoalDiff = a.gf - a.ga;
+        const bGoalDiff = b.gf - b.ga;
+        if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+        return b.gf - a.gf;
+      });
+
+      setStandings(standingsData);
     } catch (error) {
       console.error("Error fetching tournament data:", error);
       toast({
@@ -55,30 +113,6 @@ export function GuestDashboard({ tournament, onBack }) {
     .filter(match => !match.isCompleted && match.scheduledDate)
     .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))
     .slice(0, 1);
-
-  const calculateStandings = () => {
-    const standingsData = teams.map(team => {
-      const teamMatches = matches.filter(match => 
-        (match.teamA === team.id || match.teamB === team.id) && match.isCompleted
-      );
-      const wins = teamMatches.filter(match => match.winner === team.id).length;
-      const losses = teamMatches.filter(match => match.winner && match.winner !== team.id).length;
-      const ties = teamMatches.filter(match => !match.winner).length;
-
-      return {
-        id: team.id,
-        name: team.name,
-        wins,
-        losses,
-        ties,
-        gf: teamMatches.reduce((sum, match) => sum + (match.teamA === team.id ? match.score.teamA : match.score.teamB), 0),
-        ga: teamMatches.reduce((sum, match) => sum + (match.teamA === team.id ? match.score.teamB : match.score.teamA), 0),
-        pins: teamMatches.reduce((sum, match) => sum + (match.teamA === team.id ? match.pins.teamA : match.pins.teamB), 0),
-      };
-    }).sort((a, b) => (b.wins * 3 + b.ties) - (a.wins * 3 + a.ties));
-
-    return standingsData;
-  };
 
   return (
     <div className="space-y-8">
@@ -104,7 +138,7 @@ export function GuestDashboard({ tournament, onBack }) {
         <h3 className="text-xl font-semibold mb-4">Current Standings</h3>
         <Card>
           <CardContent className="p-4">
-            <StandingsTable standings={calculateStandings()} />
+            <StandingsTable standings={standings} />
           </CardContent>
         </Card>
       </section>
