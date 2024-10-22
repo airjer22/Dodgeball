@@ -3,14 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { motion } from 'framer-motion';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function TournamentCalendar({ matches, isEditing, scheduledMatches, setScheduledMatches, setUnscheduledMatches }) {
   const [date, setDate] = useState(new Date());
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [isTimeDialogOpen, setIsTimeDialogOpen] = useState(false);
+  const [selectedTime, setSelectedTime] = useState('12:00');
   const router = useRouter();
 
   useEffect(() => {
@@ -24,20 +29,8 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
     const matchData = JSON.parse(e.dataTransfer.getData('text/plain'));
     const dayKey = day.toISOString().split('T')[0];
 
-    setScheduledMatches(prev => {
-      const newScheduledMatches = { ...prev };
-      
-      // Add the match to the new day
-      if (!newScheduledMatches[dayKey]) {
-        newScheduledMatches[dayKey] = [];
-      }
-      newScheduledMatches[dayKey].push({ ...matchData, scheduledDate: dayKey });
-
-      return newScheduledMatches;
-    });
-
-    // Remove the match from unscheduledMatches
-    setUnscheduledMatches(prev => prev.filter(m => m.id !== matchData.id));
+    setSelectedMatch({ ...matchData, scheduledDate: dayKey });
+    setIsTimeDialogOpen(true);
   };
 
   const handleDragOver = (e) => {
@@ -55,12 +48,40 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
       return newScheduledMatches;
     });
 
-    // Add the match back to unscheduledMatches
     setUnscheduledMatches(prev => [...prev, { ...match, scheduledDate: null }]);
   };
 
   const handleMatchClick = (match) => {
-    router.push(`/match/${match.id}`);
+    if (isEditing) {
+      setSelectedMatch(match);
+      setSelectedTime(match.scheduledTime || '12:00');
+      setIsTimeDialogOpen(true);
+    } else {
+      router.push(`/match/${match.id}`);
+    }
+  };
+
+  const handleTimeConfirm = () => {
+    const dayKey = selectedMatch.scheduledDate;
+    const updatedMatch = { ...selectedMatch, scheduledTime: selectedTime };
+
+    setScheduledMatches(prev => {
+      const newScheduledMatches = { ...prev };
+      if (!newScheduledMatches[dayKey]) {
+        newScheduledMatches[dayKey] = [];
+      }
+      const existingIndex = newScheduledMatches[dayKey].findIndex(m => m.id === updatedMatch.id);
+      if (existingIndex !== -1) {
+        newScheduledMatches[dayKey][existingIndex] = updatedMatch;
+      } else {
+        newScheduledMatches[dayKey].push(updatedMatch);
+      }
+      return newScheduledMatches;
+    });
+
+    setUnscheduledMatches(prev => prev.filter(m => m.id !== updatedMatch.id));
+    setIsTimeDialogOpen(false);
+    setSelectedMatch(null);
   };
 
   const calendarVariants = {
@@ -103,6 +124,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
             >
               <CardContent className="p-1 text-xs flex justify-between items-center">
                 <span>{match.teamAName} vs {match.teamBName}</span>
+                <span>{match.scheduledTime || '12:00'}</span>
                 {isEditing && (
                   <Button
                     variant="ghost"
@@ -173,6 +195,24 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
         ))}
         {renderCalendar()}
       </motion.div>
+      <Dialog open={isTimeDialogOpen} onOpenChange={setIsTimeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Match Time</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4" />
+            <Input
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleTimeConfirm}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

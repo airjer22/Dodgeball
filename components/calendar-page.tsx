@@ -58,7 +58,10 @@ export function CalendarPage({ tournament }) {
     try {
       const updatePromises = Object.values(scheduledMatches)
         .flat()
-        .map(match => updateMatch(match.id, { scheduledDate: match.scheduledDate }));
+        .map(match => updateMatch(match.id, { 
+          scheduledDate: match.scheduledDate,
+          scheduledTime: match.scheduledTime 
+        }));
       
       await Promise.all(updatePromises);
       

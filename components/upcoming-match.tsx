@@ -12,8 +12,11 @@ export function UpcomingMatch({ match }) {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  const formatTime = (dateString) => {
+  const formatTime = (dateString, timeString) => {
     if (!dateString) return 'Time TBA';
+    if (timeString) {
+      return timeString;
+    }
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   };
@@ -39,7 +42,7 @@ export function UpcomingMatch({ match }) {
         </div>
         <div className="text-right">
           <div className="text-lg font-semibold">{formatDate(match.scheduledDate)}</div>
-          <div className="text-sm text-gray-500">{formatTime(match.scheduledDate)}</div>
+          <div className="text-sm text-gray-500">{formatTime(match.scheduledDate, match.scheduledTime)}</div>
         </div>
       </CardContent>
     </Card>
