@@ -19,8 +19,6 @@ export function StandingsPage({ tournament }) {
         getMatchesByTournament(tournament.id),
         getTeamsByTournament(tournament.id)
       ]);
-      console.log("Fetched matches:", matches);
-      console.log("Fetched teams:", teams);
 
       // Process matches to get upcoming matches
       const now = new Date();
@@ -31,15 +29,37 @@ export function StandingsPage({ tournament }) {
       setUpcomingMatches(upcoming);
 
       // Calculate standings
-      console.log("Calculating standings...");
       const standingsData = teams.map(team => {
         const teamMatches = matches.filter(match => 
           match.teamA === team.id || match.teamB === team.id
         );
-        console.log("Processing match:", teamMatches[0]);
-        const wins = teamMatches.filter(match => match.winner === team.id).length;
-        const losses = teamMatches.filter(match => match.winner && match.winner !== team.id).length;
-        const ties = teamMatches.filter(match => match.isCompleted && !match.winner).length;
+        
+        let wins = 0;
+        let losses = 0;
+        let ties = 0;
+        let gf = 0;
+        let ga = 0;
+        let pins = 0;
+
+        teamMatches.forEach(match => {
+          if (match.isCompleted) {
+            const isTeamA = match.teamA === team.id;
+            const teamScore = isTeamA ? match.score.teamA : match.score.teamB;
+            const opponentScore = isTeamA ? match.score.teamB : match.score.teamA;
+            
+            gf += teamScore;
+            ga += opponentScore;
+            pins += isTeamA ? match.pins.teamA : match.pins.teamB;
+
+            if (teamScore > opponentScore) {
+              wins++;
+            } else if (teamScore < opponentScore) {
+              losses++;
+            } else {
+              ties++;
+            }
+          }
+        });
 
         return {
           id: team.id,
@@ -47,15 +67,9 @@ export function StandingsPage({ tournament }) {
           wins,
           losses,
           ties,
-          gf: teamMatches.reduce((sum, match) => 
-            sum + (match.teamA === team.id ? (match.score?.teamA || 0) : (match.score?.teamB || 0)), 0
-          ),
-          ga: teamMatches.reduce((sum, match) => 
-            sum + (match.teamA === team.id ? (match.score?.teamB || 0) : (match.score?.teamA || 0)), 0
-          ),
-          pins: teamMatches.reduce((sum, match) => 
-            sum + (match.teamA === team.id ? (match.pins?.teamA || 0) : (match.pins?.teamB || 0)), 0
-          ),
+          gf,
+          ga,
+          pins,
         };
       });
 
