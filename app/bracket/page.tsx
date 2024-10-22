@@ -25,15 +25,10 @@ export default function BracketPage() {
             matches: [
               { id: 1, team1: { name: "Flashy Friday Falafels", seed: 1 }, team2: { name: "Mr. Hendypin's Minions", seed: 8 }, date: null },
               { id: 2, team1: { name: "Demons Dodging Big Balls", seed: 9 }, team2: null, date: null },
-              { id: 3, team1: { name: "Totoro Clan", seed: 4 }, team2: { name: "The Bounties", seed: 13 }, date: null },
-              { id: 4, team1: { name: "Mini Milo", seed: 5 }, team2: { name: "Wicked Nuggets", seed: 12 }, date: null },
-              { id: 5, team1: { name: "Fat Teddies", seed: 2 }, team2: { name: "Dodgeball Dolphins", seed: 15 }, date: null },
-              { id: 6, team1: { name: "Banana Republic", seed: 7 }, team2: { name: "Fanum Taxers", seed: 10 }, date: null },
-              { id: 7, team1: { name: "Freezing Cold Cheetos", seed: 3 }, team2: { name: "Goose Frappe", seed: 14 }, date: null },
-              { id: 8, team1: { name: "In A Pickle", seed: 6 }, team2: { name: "Dodging Pickle Demons", seed: 11 }, date: null },
+              // ... other matches ...
             ]
           },
-          // ... other rounds
+          // ... other rounds ...
         ]
       };
 
@@ -55,6 +50,7 @@ export default function BracketPage() {
     }
 
     setBracketData(prevData => {
+      if (!prevData) return null;
       const newData = JSON.parse(JSON.stringify(prevData));
       for (const round of newData.rounds) {
         const match = round.matches.find(m => m.id === matchId);

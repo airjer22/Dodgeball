@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/login-form';
 import { TournamentList } from '@/components/tournament-list';
@@ -10,23 +10,15 @@ import { getAllTournaments, deleteTournament } from '@/lib/firestore';
 import { useToast } from "@/components/ui/use-toast"
 
 export default function Home() {
-  const { user, loading } = useAuth();
   const [tournaments, setTournaments] = useState([]);
+  const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    console.log("Auth state changed:", { user, loading });
-    if (user) {
-      fetchTournaments();
-    }
-  }, [user]);
-
-  const fetchTournaments = async () => {
+  const fetchTournaments = useCallback(async () => {
     try {
       const fetchedTournaments = await getAllTournaments();
       setTournaments(fetchedTournaments);
-      console.log("Fetched tournaments:", fetchedTournaments);
     } catch (error) {
       console.error("Error fetching tournaments:", error);
       toast({
@@ -35,7 +27,15 @@ export default function Home() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    } else if (!loading) {
+      fetchTournaments();
+    }
+  }, [user, loading, router, fetchTournaments]);
 
   const handleCreateTournament = (newTournament) => {
     setTournaments([newTournament, ...tournaments]);

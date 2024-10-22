@@ -1,90 +1,129 @@
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 
-// Tournament operations
 export const createTournament = async (tournamentData) => {
-  return await addDoc(collection(db, 'tournaments'), tournamentData);
+  try {
+    const docRef = await addDoc(collection(db, 'tournaments'), tournamentData);
+    return docRef;
+  } catch (error) {
+    console.error("Error creating tournament:", error);
+    throw new Error("Failed to create tournament. Please try again.");
+  }
 };
 
-export const updateTournament = async (tournamentId, tournamentData) => {
-  const tournamentRef = doc(db, 'tournaments', tournamentId);
-  await updateDoc(tournamentRef, tournamentData);
-};
-
-export const deleteTournament = async (tournamentId) => {
-  await deleteDoc(doc(db, 'tournaments', tournamentId));
-};
-
-export const getTournament = async (tournamentId) => {
-  const tournamentDoc = await getDoc(doc(db, 'tournaments', tournamentId));
-  return tournamentDoc.exists() ? { id: tournamentDoc.id, ...tournamentDoc.data() } : null;
+export const getTournament = async (id) => {
+  try {
+    const tournamentDoc = await getDoc(doc(db, 'tournaments', id));
+    if (tournamentDoc.exists()) {
+      return { id: tournamentDoc.id, ...tournamentDoc.data() };
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching tournament:", error);
+    throw new Error("Failed to fetch tournament. Please try again.");
+  }
 };
 
 export const getAllTournaments = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'tournaments'));
+    const tournamentsRef = collection(db, 'tournaments');
+    const querySnapshot = await getDocs(tournamentsRef);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error getting all tournaments:", error);
-    throw error;
+    console.error("Error fetching tournaments:", error);
+    throw new Error("Failed to fetch tournaments. Please try again.");
   }
 };
 
-// Team operations
+export const updateTournament = async (id, tournamentData) => {
+  try {
+    await updateDoc(doc(db, 'tournaments', id), tournamentData);
+  } catch (error) {
+    console.error("Error updating tournament:", error);
+    throw new Error("Failed to update tournament. Please try again.");
+  }
+};
+
+export const deleteTournament = async (id) => {
+  try {
+    await deleteDoc(doc(db, 'tournaments', id));
+  } catch (error) {
+    console.error("Error deleting tournament:", error);
+    throw new Error("Failed to delete tournament. Please try again.");
+  }
+};
+
 export const createTeam = async (teamData) => {
-  return await addDoc(collection(db, 'teams'), teamData);
-};
-
-export const updateTeam = async (teamId, teamData) => {
-  const teamRef = doc(db, 'teams', teamId);
-  await updateDoc(teamRef, teamData);
-};
-
-export const deleteTeam = async (teamId) => {
-  await deleteDoc(doc(db, 'teams', teamId));
-};
-
-export const getTeam = async (teamId) => {
-  const teamDoc = await getDoc(doc(db, 'teams', teamId));
-  return teamDoc.exists() ? { id: teamDoc.id, ...teamDoc.data() } : null;
+  try {
+    const docRef = await addDoc(collection(db, 'teams'), teamData);
+    return docRef;
+  } catch (error) {
+    console.error("Error creating team:", error);
+    throw new Error("Failed to create team. Please try again.");
+  }
 };
 
 export const getTeamsByTournament = async (tournamentId) => {
-  const q = query(collection(db, 'teams'), where('tournamentId', '==', tournamentId));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const teamsQuery = query(collection(db, 'teams'), where('tournamentId', '==', tournamentId));
+    const querySnapshot = await getDocs(teamsQuery);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error fetching teams:", error);
+    throw new Error("Failed to fetch teams. Please try again.");
+  }
 };
 
-// Match operations
+export const updateTeam = async (id, teamData) => {
+  try {
+    await updateDoc(doc(db, 'teams', id), teamData);
+  } catch (error) {
+    console.error("Error updating team:", error);
+    throw new Error("Failed to update team. Please try again.");
+  }
+};
+
 export const createMatch = async (matchData) => {
-  return await addDoc(collection(db, 'matches'), matchData);
-};
-
-export const updateMatch = async (matchId, matchData) => {
-  const matchRef = doc(db, 'matches', matchId);
-  await updateDoc(matchRef, matchData);
-};
-
-export const deleteMatch = async (matchId) => {
-  await deleteDoc(doc(db, 'matches', matchId));
-};
-
-export const getMatch = async (matchId) => {
-  const matchDoc = await getDoc(doc(db, 'matches', matchId));
-  return matchDoc.exists() ? { id: matchDoc.id, ...matchDoc.data() } : null;
+  try {
+    const docRef = await addDoc(collection(db, 'matches'), matchData);
+    return docRef;
+  } catch (error) {
+    console.error("Error creating match:", error);
+    throw new Error("Failed to create match. Please try again.");
+  }
 };
 
 export const getMatchesByTournament = async (tournamentId) => {
-  const q = query(collection(db, 'matches'), where('tournamentId', '==', tournamentId));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ 
-    id: doc.id, 
-    ...doc.data(),
-    winner: doc.data().winner || null // Ensure winner field is always present
-  }));
+  try {
+    const matchesQuery = query(collection(db, 'matches'), where('tournamentId', '==', tournamentId));
+    const querySnapshot = await getDocs(matchesQuery);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error fetching matches:", error);
+    throw new Error("Failed to fetch matches. Please try again.");
+  }
 };
 
-export const updateMatchSchedule = async (matchId, scheduledDate) => {
-  const matchRef = doc(db, 'matches', matchId);
-  await updateDoc(matchRef, { scheduledDate });
+export const updateMatch = async (id, matchData) => {
+  try {
+    await updateDoc(doc(db, 'matches', id), matchData);
+  } catch (error) {
+    console.error("Error updating match:", error);
+    throw new Error("Failed to update match. Please try again.");
+  }
+};
+
+export const getMatch = async (id) => {
+  try {
+    const matchDoc = await getDoc(doc(db, 'matches', id));
+    if (matchDoc.exists()) {
+      return { id: matchDoc.id, ...matchDoc.data() };
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching match:", error);
+    throw new Error("Failed to fetch match. Please try again.");
+  }
 };

@@ -1,71 +1,53 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { TeamsPage } from '@/components/teams-page';
-import { useAuth } from '@/contexts/AuthContext';
-import { getTournament } from '@/lib/firestore';
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useTournament } from '@/contexts/TournamentContext';
+import { getTournament } from '@/lib/firestore';
 
-export default function Teams({ params }) {
+export default function TournamentTeamsPage({ params }) {
   const [tournament, setTournament] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { user } = useAuth();
   const { toast } = useToast();
+  const { setSelectedTournament } = useTournament();
 
-  useEffect(() => {
-    if (user) {
-      fetchTournament();
-    }
-  }, [user, params.id]);
-
-  const fetchTournament = async () => {
+  const fetchTournament = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const tournamentData = await getTournament(params.id);
-      if (!tournamentData) {
-        throw new Error("Tournament not found");
-      }
-      setTournament(tournamentData);
+      const fetchedTournament = await getTournament(params.id);
+      setTournament(fetchedTournament);
+      setSelectedTournament(fetchedTournament);
     } catch (error) {
       console.error("Error fetching tournament:", error);
-      setError("Failed to fetch tournament data. Please try again.");
       toast({
         title: "Error",
         description: "Failed to fetch tournament data. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [params.id, toast, setSelectedTournament]);
 
-  if (loading) {
-    return <div>Loading tournament data...</div>;
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
+  useEffect(() => {
+    fetchTournament();
+  }, [fetchTournament]);
 
   return (
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar tournamentId={params.id} />
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">{tournament?.name} - Teams</h1>
+        {tournament ? (
           <TeamsPage tournament={tournament} />
-        </div>
+        ) : (
+          <Alert variant="warning">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No tournament selected</AlertTitle>
+            <AlertDescription>
+              Please select a tournament from the dashboard to manage teams.
+            </AlertDescription>
+          </Alert>
+        )}
       </main>
     </div>
   );

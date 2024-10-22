@@ -1,17 +1,23 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export function MatchList({ matches, scheduledMatches, isEditing }) {
+export function MatchList({ matches, scheduledMatches, isEditing, setUnscheduledMatches, setScheduledMatches }) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredMatches = matches.filter(match =>
-    (match.teamAName?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-    (match.teamBName?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-  );
+  const sortedMatches = useMemo(() => {
+    return [...matches].sort((a, b) => a.round - b.round);
+  }, [matches]);
+
+  const filteredMatches = useMemo(() => {
+    return sortedMatches.filter(match =>
+      (match.teamAName?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+      (match.teamBName?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
+    );
+  }, [sortedMatches, searchTerm]);
 
   const handleDragStart = (e, match) => {
     if (!isEditing) {
@@ -21,20 +27,19 @@ export function MatchList({ matches, scheduledMatches, isEditing }) {
     e.dataTransfer.setData('text/plain', JSON.stringify(match));
   };
 
-  const isMatchScheduled = (match) => {
-    return Object.values(scheduledMatches).some(dayMatches => 
-      dayMatches.some(scheduledMatch => scheduledMatch.id === match.id)
-    );
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not scheduled';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const handleDragEnd = (e, match) => {
+    if (e.dataTransfer.dropEffect === 'none') {
+      // The match was not dropped on a valid target
+      return;
+    }
+    
+    // Remove the match from unscheduledMatches
+    setUnscheduledMatches(prev => prev.filter(m => m.id !== match.id));
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="w-1/4 h-full flex flex-col">
+      <h2 className="text-xl font-semibold mb-4">Unscheduled Matches</h2>
       <Input
         type="text"
         placeholder="Search matches..."
@@ -43,25 +48,20 @@ export function MatchList({ matches, scheduledMatches, isEditing }) {
         className="mb-4"
       />
       <ScrollArea className="flex-1">
-        {filteredMatches.map((match) => {
-          const scheduled = isMatchScheduled(match);
-          return (
-            <Card 
-              key={match.id} 
-              className={`mb-2 ${scheduled ? 'bg-green-100 dark:bg-green-900' : ''} ${isEditing ? 'cursor-move' : 'cursor-default'}`}
-              draggable={isEditing}
-              onDragStart={(e) => handleDragStart(e, match)}
-            >
-              <CardContent className="p-2">
-                <p className="text-sm font-medium">{match.teamAName || 'Team A'} vs {match.teamBName || 'Team B'}</p>
-                <p className="text-xs text-gray-500">Round {match.round}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {formatDate(match.scheduledDate)}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {filteredMatches.map((match) => (
+          <Card 
+            key={match.id} 
+            className={`mb-2 ${isEditing ? 'cursor-move' : 'cursor-default'}`}
+            draggable={isEditing}
+            onDragStart={(e) => handleDragStart(e, match)}
+            onDragEnd={(e) => handleDragEnd(e, match)}
+          >
+            <CardContent className="p-2">
+              <p className="text-sm font-medium">{match.teamAName || 'Team A'} vs {match.teamBName || 'Team B'}</p>
+              <p className="text-xs text-gray-500">Round {match.round}</p>
+            </CardContent>
+          </Card>
+        ))}
       </ScrollArea>
     </div>
   );

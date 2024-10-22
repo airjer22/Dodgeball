@@ -1,62 +1,75 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UpcomingMatch } from '@/components/upcoming-match';
 import { StandingsTable } from '@/components/standings-table';
-import { getMatchesByTournament, getTeamsByTournament } from '@/lib/firestore';
 import { useToast } from "@/components/ui/use-toast";
-import { useRouter } from 'next/navigation';
+import { getMatchesByTournament, getTeamsByTournament } from '@/lib/firestore';
 
 export function StandingsPage({ tournament }) {
-  const [upcomingMatch, setUpcomingMatch] = useState(null);
+  const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [standings, setStandings] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (tournament) {
-      fetchMatchesAndTeams();
-    }
-  }, [tournament]);
+  const fetchMatchesAndTeams = useCallback(async () => {
+    if (!tournament) return;
 
-  const fetchMatchesAndTeams = async () => {
-    setLoading(true);
     try {
       const [matches, teams] = await Promise.all([
         getMatchesByTournament(tournament.id),
         getTeamsByTournament(tournament.id)
       ]);
-
       console.log("Fetched matches:", matches);
       console.log("Fetched teams:", teams);
 
-      // Create a map of team IDs to team names
-      const teamMap = teams.reduce((acc, team) => {
-        acc[team.id] = team.name;
-        return acc;
-      }, {});
-
-      // Normalize match data
-      const normalizedMatches = matches.map(match => ({
-        ...match,
-        teamAName: teamMap[match.teamA] || 'Unknown Team',
-        teamBName: teamMap[match.teamB] || 'Unknown Team',
-      }));
+      // Process matches to get upcoming matches
+      const now = new Date();
+      const upcoming = matches
+        .filter(match => new Date(match.scheduledDate) > now && !match.isCompleted)
+        .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))
+        .slice(0, 1);  // Get next upcoming match
+      setUpcomingMatches(upcoming);
 
       // Calculate standings
-      const standingsData = calculateStandings(teams, normalizedMatches);
+      console.log("Calculating standings...");
+      const standingsData = teams.map(team => {
+        const teamMatches = matches.filter(match => 
+          match.teamA === team.id || match.teamB === team.id
+        );
+        console.log("Processing match:", teamMatches[0]);
+        const wins = teamMatches.filter(match => match.winner === team.id).length;
+        const losses = teamMatches.filter(match => match.winner && match.winner !== team.id).length;
+        const ties = teamMatches.filter(match => match.isCompleted && !match.winner).length;
+
+        return {
+          id: team.id,
+          name: team.name,
+          wins,
+          losses,
+          ties,
+          gf: teamMatches.reduce((sum, match) => 
+            sum + (match.teamA === team.id ? (match.score?.teamA || 0) : (match.score?.teamB || 0)), 0
+          ),
+          ga: teamMatches.reduce((sum, match) => 
+            sum + (match.teamA === team.id ? (match.score?.teamB || 0) : (match.score?.teamA || 0)), 0
+          ),
+          pins: teamMatches.reduce((sum, match) => 
+            sum + (match.teamA === team.id ? (match.pins?.teamA || 0) : (match.pins?.teamB || 0)), 0
+          ),
+        };
+      });
 
       // Sort standings
-      const sortedStandings = sortStandings(standingsData);
-      setStandings(sortedStandings);
+      standingsData.sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (b.ties !== a.ties) return b.ties - a.ties;
+        const aGoalDiff = a.gf - a.ga;
+        const bGoalDiff = b.gf - b.ga;
+        if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+        return b.gf - a.gf;
+      });
 
-      // Set upcoming match (only one)
-      const upcoming = normalizedMatches
-        .filter(match => !match.isCompleted && match.scheduledDate)
-        .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))
-        [0];
-      setUpcomingMatch(upcoming);
+      setStandings(standingsData);
     } catch (error) {
       console.error("Error fetching matches and teams:", error);
       toast({
@@ -64,90 +77,23 @@ export function StandingsPage({ tournament }) {
         description: "Failed to fetch standings data. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [tournament, toast]);
 
-  const calculateStandings = (teams, matches) => {
-    const standingsMap = teams.reduce((acc, team) => {
-      acc[team.id] = {
-        id: team.id,
-        name: team.name,
-        wins: 0,
-        ties: 0,
-        losses: 0,
-        gf: 0,
-        ga: 0,
-        pins: 0
-      };
-      return acc;
-    }, {});
+  useEffect(() => {
+    fetchMatchesAndTeams();
+  }, [fetchMatchesAndTeams]);
 
-    matches.forEach(match => {
-      if (match.isCompleted) {
-        const teamA = standingsMap[match.teamA];
-        const teamB = standingsMap[match.teamB];
-
-        if (teamA && teamB) {
-          const scoreA = match.score.teamA;
-          const scoreB = match.score.teamB;
-
-          teamA.gf += scoreA;
-          teamA.ga += scoreB;
-          teamA.pins += match.pins.teamA;
-
-          teamB.gf += scoreB;
-          teamB.ga += scoreA;
-          teamB.pins += match.pins.teamB;
-
-          if (scoreA > scoreB) {
-            teamA.wins++;
-            teamB.losses++;
-          } else if (scoreB > scoreA) {
-            teamB.wins++;
-            teamA.losses++;
-          } else {
-            teamA.ties++;
-            teamB.ties++;
-          }
-        }
-      }
-    });
-
-    return Object.values(standingsMap);
-  };
-
-  const sortStandings = (standings) => {
-    return standings.sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.ties !== a.ties) return b.ties - a.ties;
-      if (b.gf !== a.gf) return b.gf - a.gf;
-      if (a.ga !== b.ga) return a.ga - b.ga;
-      return b.pins - a.pins;
-    });
-  };
-
-  const handleUpcomingMatchClick = () => {
-    if (upcomingMatch) {
-      router.push(`/match/${upcomingMatch.id}`);
-    }
-  };
-
-  if (loading) {
-    return <div>Loading standings...</div>;
+  if (!tournament) {
+    return <div>No tournament selected</div>;
   }
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Upcoming Match</h2>
-      {upcomingMatch ? (
-        <div onClick={handleUpcomingMatchClick} className="cursor-pointer">
-          <UpcomingMatch match={upcomingMatch} />
-        </div>
-      ) : (
-        <p>No upcoming matches scheduled.</p>
-      )}
+      {upcomingMatches.map((match, index) => (
+        <UpcomingMatch key={index} match={match} />
+      ))}
       <h2 className="text-xl font-semibold my-4">Standings</h2>
       <StandingsTable standings={standings} />
     </div>
