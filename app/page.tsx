@@ -8,12 +8,14 @@ import { CreateTournamentForm } from '@/components/create-tournament-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllTournaments, deleteTournament } from '@/lib/firestore';
 import { useToast } from "@/components/ui/use-toast"
+import { useTheme } from "next-themes"
 
 export default function Home() {
   const [tournaments, setTournaments] = useState([]);
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { theme } = useTheme();
 
   const fetchTournaments = useCallback(async () => {
     try {
@@ -69,7 +71,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className={`flex items-center justify-center min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
         <div className="text-center">
           <p className="mb-4">Loading... Please wait.</p>
           <p>Auth state: {loading ? 'Loading' : user ? 'Authenticated' : 'Not authenticated'}</p>
@@ -79,7 +81,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+    <div className={`flex flex-col items-center justify-center min-h-screen p-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {!user ? (
         <LoginForm />
       ) : (
