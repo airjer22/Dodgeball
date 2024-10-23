@@ -1,21 +1,21 @@
 "use client"
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Home, Users, Calendar, GitBranch, Moon, Sun, LogOut, BarChart2 } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Trophy } from 'lucide-react';
 import { useTheme } from "next-themes"
-import { useTournament } from '@/contexts/TournamentContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { motion } from 'framer-motion';
 
-export function Sidebar() {
+export function Sidebar({ tournamentId }) {
   const { theme, setTheme } = useTheme()
   const router = useRouter();
-  const { selectedTournament } = useTournament();
   const { user } = useAuth();
+  const pathname = usePathname();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -30,60 +30,96 @@ export function Sidebar() {
     }
   }
 
-  const isDisabled = !selectedTournament;
+  const isActive = (path) => {
+    return pathname.includes(path);
+  };
+
+  const sidebarVariants = {
+    hidden: { x: -300 },
+    visible: { x: 0, transition: { type: 'spring', stiffness: 100 } }
+  };
+
+  const linkVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0 }
+  };
 
   return (
-    <div className="w-64 bg-sidebar text-sidebar-foreground h-full shadow-lg flex flex-col">
-      <div className="flex items-center justify-center h-16 border-b border-sidebar-border">
-        <Trophy className="h-6 w-6 mr-2" />
-        <span className="text-xl font-semibold">Dodgeball Master</span>
+    <motion.div
+      className="w-64 bg-background border-r border-border h-full shadow-lg flex flex-col"
+      initial="hidden"
+      animate="visible"
+      variants={sidebarVariants}
+    >
+      <div className="flex items-center justify-center h-16 border-b border-border">
+        <Trophy className="h-6 w-6 mr-2 text-primary" />
+        <span className="text-xl font-semibold gradient-text">Dodgeball Manager</span>
       </div>
       <nav className="mt-6 flex-grow">
-        <Link href="/dashboard" className="flex items-center px-6 py-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
-          <Home className="h-5 w-5 mr-3" />
-          Home
-        </Link>
-        <Button
-          disabled={isDisabled}
-          variant="ghost"
-          className="w-full justify-start px-6 py-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          onClick={() => router.push('/standings')}
-        >
-          <BarChart2 className="h-5 w-5 mr-3" />
-          Standings
-        </Button>
-        <Button
-          disabled={isDisabled}
-          variant="ghost"
-          className="w-full justify-start px-6 py-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          onClick={() => router.push('/teams')}
-        >
-          <Users className="h-5 w-5 mr-3" />
-          Teams
-        </Button>
-        <Button
-          disabled={isDisabled}
-          variant="ghost"
-          className="w-full justify-start px-6 py-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          onClick={() => router.push('/calendar')}
-        >
-          <Calendar className="h-5 w-5 mr-3" />
-          Calendar
-        </Button>
-        <Button
-          disabled={isDisabled}
-          variant="ghost"
-          className="w-full justify-start px-6 py-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          onClick={() => router.push('/bracket')}
-        >
-          <GitBranch className="h-5 w-5 mr-3" />
-          Bracket
-        </Button>
+        <motion.div variants={linkVariants}>
+          <Link href="/dashboard" passHref>
+            <Button
+              variant={isActive('/dashboard') && !tournamentId ? 'secondary' : 'ghost'}
+              className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
+            >
+              <Home className="h-5 w-5 mr-3" />
+              Home
+            </Button>
+          </Link>
+        </motion.div>
+        {tournamentId && (
+          <>
+            <motion.div variants={linkVariants}>
+              <Link href={`/dashboard/${tournamentId}`} passHref>
+                <Button
+                  variant={isActive(`/dashboard/${tournamentId}`) && !isActive('/teams') && !isActive('/calendar') && !isActive('/bracket') ? 'secondary' : 'ghost'}
+                  className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
+                >
+                  <BarChart2 className="h-5 w-5 mr-3" />
+                  Standings
+                </Button>
+              </Link>
+            </motion.div>
+            <motion.div variants={linkVariants}>
+              <Link href={`/dashboard/${tournamentId}/teams`} passHref>
+                <Button
+                  variant={isActive('/teams') ? 'secondary' : 'ghost'}
+                  className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
+                >
+                  <Users className="h-5 w-5 mr-3" />
+                  Teams
+                </Button>
+              </Link>
+            </motion.div>
+            <motion.div variants={linkVariants}>
+              <Link href={`/dashboard/${tournamentId}/calendar`} passHref>
+                <Button
+                  variant={isActive('/calendar') ? 'secondary' : 'ghost'}
+                  className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
+                >
+                  <Calendar className="h-5 w-5 mr-3" />
+                  Calendar
+                </Button>
+              </Link>
+            </motion.div>
+            <motion.div variants={linkVariants}>
+              <Link href={`/dashboard/${tournamentId}/bracket`} passHref>
+                <Button
+                  variant={isActive('/bracket') ? 'secondary' : 'ghost'}
+                  className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
+                >
+                  <GitBranch className="h-5 w-5 mr-3" />
+                  Bracket
+                </Button>
+              </Link>
+            </motion.div>
+          </>
+        )}
       </nav>
       <div className="mt-auto px-6 py-3">
         <Button 
           variant="ghost" 
-          className="flex items-center justify-start w-full py-3 px-0"
+          className="flex items-center justify-start w-full py-3 px-0 hover:bg-primary/10"
           onClick={toggleTheme}
         >
           {theme === "dark" ? (
@@ -96,7 +132,7 @@ export function Sidebar() {
         {user && (
           <Button 
             variant="ghost" 
-            className="flex items-center justify-start w-full py-3 px-0 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+            className="flex items-center justify-start w-full py-3 px-0 text-destructive hover:bg-destructive/10"
             onClick={handleLogout}
           >
             <LogOut className="h-5 w-5 mr-3" />
@@ -104,6 +140,6 @@ export function Sidebar() {
           </Button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

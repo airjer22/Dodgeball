@@ -5,39 +5,57 @@ import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { MatchScoring } from '@/components/match-scoring'
 import { useToast } from "@/components/ui/use-toast"
+import { getMatch, updateMatch, getTournament } from '@/lib/firestore'
+import { useTournament } from '@/contexts/TournamentContext'
 
 export default function MatchPageClient({ id }) {
   const router = useRouter()
   const { toast } = useToast()
   const [match, setMatch] = useState(null)
+  const { setSelectedTournament } = useTournament()
 
   useEffect(() => {
-    // In a real app, fetch match data from an API
-    const fetchMatch = async () => {
-      // Simulating API call
-      const matchData = {
-        id,
-        teamA: { name: 'Team A', score: 0, pins: 0 },
-        teamB: { name: 'Team B', score: 0, pins: 0 },
-        date: new Date().toISOString(),
+    const fetchMatchAndTournament = async () => {
+      try {
+        const matchData = await getMatch(id);
+        setMatch(matchData);
+
+        // Fetch and set the tournament
+        const tournamentData = await getTournament(matchData.tournamentId);
+        setSelectedTournament(tournamentData);
+      } catch (error) {
+        console.error("Error fetching match or tournament:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch match data. Please try again.",
+          variant: "destructive",
+        });
       }
-      setMatch(matchData)
+    };
+
+    fetchMatchAndTournament();
+  }, [id, toast, setSelectedTournament]);
+
+  const handleSaveMatch = async (updatedMatch) => {
+    try {
+      await updateMatch(id, updatedMatch);
+      toast({
+        title: "Match Saved",
+        description: "The match data has been successfully saved.",
+      });
+      // Redirect to the standings page of the current tournament
+      router.push(`/dashboard/${updatedMatch.tournamentId}`);
+    } catch (error) {
+      console.error("Error saving match:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save match data. Please try again.",
+        variant: "destructive",
+      });
     }
+  };
 
-    fetchMatch()
-  }, [id])
-
-  const handleSaveMatch = (updatedMatch) => {
-    // In a real app, send this data to an API
-    console.log('Saving match:', updatedMatch)
-    toast({
-      title: "Match Saved",
-      description: "The match data has been successfully saved.",
-    })
-    router.push('/calendar')
-  }
-
-  if (!match) return <div>Loading...</div>
+  if (!match) return <div>Loading...</div>;
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -47,5 +65,5 @@ export default function MatchPageClient({ id }) {
         <MatchScoring match={match} onSave={handleSaveMatch} />
       </main>
     </div>
-  )
+  );
 }

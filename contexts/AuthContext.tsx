@@ -16,16 +16,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("AuthProvider mounted");
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? "User logged in" : "No user");
       setUser(user);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log("AuthProvider unmounted");
+      unsubscribe();
+    };
   }, []);
 
+  const value = {
+    user,
+    loading,
+  };
+
+  console.log("AuthProvider rendering with:", value);
+
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

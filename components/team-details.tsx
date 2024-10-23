@@ -3,26 +3,33 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Trash2, X } from 'lucide-react';
+import { Trash2, UserPlus, UserMinus } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 
 export function TeamDetails({ team, onUpdateTeam }) {
+  const [teamName, setTeamName] = useState(team.name);
   const [newMemberName, setNewMemberName] = useState('');
+  const { toast } = useToast();
+
+  // Ensure members and substitutes are always arrays
+  const members = team.members || [];
+  const substitutes = team.substitutes || [];
 
   const handleAddMember = (isSubstitute = false) => {
     if (newMemberName.trim()) {
       const newMember = {
-        id: Date.now(),
+        id: Date.now().toString(),
         name: newMemberName.trim(),
         isSubstitute
       };
       const updatedTeam = {
         ...team,
         members: isSubstitute 
-          ? [...team.members]
-          : [...team.members, newMember],
+          ? [...members]
+          : [...members, newMember],
         substitutes: isSubstitute
-          ? [...team.substitutes, newMember]
-          : [...team.substitutes]
+          ? [...substitutes, newMember]
+          : [...substitutes]
       };
       onUpdateTeam(updatedTeam);
       setNewMemberName('');
@@ -33,47 +40,62 @@ export function TeamDetails({ team, onUpdateTeam }) {
     const updatedTeam = {
       ...team,
       members: isSubstitute 
-        ? [...team.members]
-        : team.members.filter(m => m.id !== memberId),
+        ? [...members]
+        : members.filter(m => m.id !== memberId),
       substitutes: isSubstitute
-        ? team.substitutes.filter(m => m.id !== memberId)
-        : [...team.substitutes]
+        ? substitutes.filter(m => m.id !== memberId)
+        : [...substitutes]
     };
     onUpdateTeam(updatedTeam);
   };
 
   const handleToggleSubstitute = (memberId) => {
-    const member = team.members.find(m => m.id === memberId);
-    const substitute = team.substitutes.find(s => s.id === memberId);
+    const member = members.find(m => m.id === memberId);
+    const substitute = substitutes.find(s => s.id === memberId);
 
     if (member) {
       // Move from members to substitutes
       const updatedTeam = {
         ...team,
-        members: team.members.filter(m => m.id !== memberId),
-        substitutes: [...team.substitutes, { ...member, isSubstitute: true }]
+        members: members.filter(m => m.id !== memberId),
+        substitutes: [...substitutes, { ...member, isSubstitute: true }]
       };
       onUpdateTeam(updatedTeam);
     } else if (substitute) {
       // Move from substitutes to members
       const updatedTeam = {
         ...team,
-        substitutes: team.substitutes.filter(s => s.id !== memberId),
-        members: [...team.members, { ...substitute, isSubstitute: false }]
+        substitutes: substitutes.filter(s => s.id !== memberId),
+        members: [...members, { ...substitute, isSubstitute: false }]
       };
       onUpdateTeam(updatedTeam);
     }
   };
 
+  const handleSave = () => {
+    const updatedTeam = { ...team, name: teamName };
+    onUpdateTeam(updatedTeam);
+    toast({
+      title: "Success",
+      description: "Team saved successfully",
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{team.name}</CardTitle>
+        <CardTitle>
+          <Input 
+            value={teamName} 
+            onChange={(e) => setTeamName(e.target.value)} 
+            className="text-2xl font-bold"
+          />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2">Team Members</h3>
-          {team.members.map((member) => (
+          {members.map((member) => (
             <div key={member.id} className="flex items-center justify-between mb-2">
               <span>{member.name}</span>
               <div>
@@ -82,7 +104,7 @@ export function TeamDetails({ team, onUpdateTeam }) {
                   size="sm"
                   onClick={() => handleToggleSubstitute(member.id)}
                 >
-                  Mark as Substitute
+                  <UserMinus className="mr-2 h-4 w-4" /> Mark as Substitute
                 </Button>
                 <Button
                   variant="ghost"
@@ -98,7 +120,7 @@ export function TeamDetails({ team, onUpdateTeam }) {
 
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2">Substitute Players</h3>
-          {team.substitutes.map((sub) => (
+          {substitutes.map((sub) => (
             <div key={sub.id} className="flex items-center justify-between mb-2">
               <span>{sub.name}</span>
               <div>
@@ -107,14 +129,14 @@ export function TeamDetails({ team, onUpdateTeam }) {
                   size="sm"
                   onClick={() => handleToggleSubstitute(sub.id)}
                 >
-                  Mark as Regular
+                  <UserPlus className="mr-2 h-4 w-4" /> Mark as Regular
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRemoveMember(sub.id, true)}
                 >
-                  <X className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -131,11 +153,12 @@ export function TeamDetails({ team, onUpdateTeam }) {
               placeholder="Enter member name"
               className="mr-2"
             />
-            <Button onClick={() => handleAddMember(false)}>Add</Button>
+            <Button onClick={() => handleAddMember(false)}>Add as Regular</Button>
+            <Button onClick={() => handleAddMember(true)} variant="outline" className="ml-2">Add as Substitute</Button>
           </div>
         </div>
 
-        <Button className="w-full" onClick={() => onUpdateTeam(team)}>
+        <Button className="w-full" onClick={handleSave}>
           Save Changes
         </Button>
       </CardContent>

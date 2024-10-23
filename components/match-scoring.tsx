@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Minus } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export function MatchScoring({ match, onSave }) {
-  const [teamA, setTeamA] = useState(match.teamA);
-  const [teamB, setTeamB] = useState(match.teamB);
-  const [timer, setTimer] = useState(300); // 5 minutes in seconds
+  const [teamA, setTeamA] = useState({ ...match.teamA, score: match.score?.teamA || 0, pins: match.pins?.teamA || 0 });
+  const [teamB, setTeamB] = useState({ ...match.teamB, score: match.score?.teamB || 0, pins: match.pins?.teamB || 0 });
+  const [timer, setTimer] = useState(1200); // 20 minutes in seconds
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   useEffect(() => {
@@ -53,7 +54,13 @@ export function MatchScoring({ match, onSave }) {
   };
 
   const handleSave = () => {
-    onSave({ ...match, teamA, teamB });
+    const updatedMatch = {
+      ...match,
+      score: { teamA: teamA.score, teamB: teamB.score },
+      pins: { teamA: teamA.pins, teamB: teamB.pins },
+      isCompleted: true
+    };
+    onSave(updatedMatch);
   };
 
   const handleReset = () => {
@@ -63,10 +70,31 @@ export function MatchScoring({ match, onSave }) {
     setIsTimerRunning(false);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Date not set';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>Match Date: {new Date(match.date).toLocaleDateString()}</div>
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="flex justify-between items-center" variants={itemVariants}>
+        <div>Match Date: {formatDate(match.scheduledDate)}</div>
         <div className={`text-6xl font-bold ${timer <= 60 ? 'text-red-500 text-8xl' : ''}`}>
           {formatTime(timer)}
         </div>
@@ -81,41 +109,41 @@ export function MatchScoring({ match, onSave }) {
             {isTimerRunning ? 'Pause' : 'Start'}
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <motion.div className="grid grid-cols-2 gap-6" variants={itemVariants}>
         <TeamCard team={teamA} onScoreChange={(v) => handleScoreChange('A', v)} onPinChange={(v) => handlePinChange('A', v)} />
         <TeamCard team={teamB} onScoreChange={(v) => handleScoreChange('B', v)} onPinChange={(v) => handlePinChange('B', v)} />
-      </div>
+      </motion.div>
 
-      <div className="flex justify-center space-x-4">
-        <Button onClick={handleSave}>Save Match Data</Button>
-        <Button variant="outline" onClick={handleReset}>Reset</Button>
-      </div>
-    </div>
+      <motion.div className="flex justify-center space-x-4" variants={itemVariants}>
+        <Button onClick={handleSave} className="hover-scale">Save Match Data</Button>
+        <Button variant="outline" onClick={handleReset} className="hover-scale">Reset</Button>
+      </motion.div>
+    </motion.div>
   );
 }
 
 function TeamCard({ team, onScoreChange, onPinChange }) {
   return (
-    <Card>
+    <Card className="glassmorphism">
       <CardHeader>
-        <CardTitle>{team.name}</CardTitle>
+        <CardTitle className="gradient-text">{team.name}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center">
-          <div className="text-9x1 font-bold mb-4">{team.score}</div>
+          <div className="text-9xl font-bold mb-4 gradient-text">{team.score}</div>
           <div className="flex justify-center space-x-2">
-            <Button size="icon" variant="outline" onClick={() => onScoreChange(-1)}><Minus className="h-4 w-4" /></Button>
-            <Button size="icon" variant="outline" onClick={() => onScoreChange(1)}><Plus className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => onScoreChange(-1)} className="hover-scale"><Minus className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => onScoreChange(1)} className="hover-scale"><Plus className="h-4 w-4" /></Button>
           </div>
         </div>
         <div className="text-center">
           <Label className="text-xl">Pins</Label>
-          <div className="text-6xl font-semibold mb-2">{team.pins}</div>
+          <div className="text-6xl font-semibold mb-2 gradient-text">{team.pins}</div>
           <div className="flex justify-center space-x-2">
-            <Button size="icon" variant="outline" onClick={() => onPinChange(-1)}><Minus className="h-4 w-4" /></Button>
-            <Button size="icon" variant="outline" onClick={() => onPinChange(1)}><Plus className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => onPinChange(-1)} className="hover-scale"><Minus className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => onPinChange(1)} className="hover-scale"><Plus className="h-4 w-4" /></Button>
           </div>
         </div>
       </CardContent>

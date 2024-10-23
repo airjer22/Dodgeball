@@ -48,7 +48,7 @@ export default function CalendarPage() {
       <Sidebar />
       <main className="flex-1 p-8 overflow-hidden">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">MatchMaster Calendar</h1>
+          <h1 className="text-2xl font-bold">Calendar</h1>
           {selectedTournament && (
             <div>
               {isEditing ? (

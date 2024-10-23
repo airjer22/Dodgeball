@@ -1,0 +1,44 @@
+/* ... (keep existing styles) */
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.calendar-day {
+    border: 1px solid #ddd;
+    padding: 5px;
+    min-height: 100px;
+    background-color: #f9f9f9;
+}
+
+.calendar-day-header {
+    font-weight: bold;
+    text-align: center;
+    background-color: #e0e0e0;
+    padding: 5px;
+}
+
+.match-list {
+    margin-top: 20px;
+}
+
+.match-item {
+    background-color: #e0e0e0;
+    padding: 5px;
+    margin: 5px 0;
+    cursor: move;
+}
+
+.scheduled-match {
+    background-color: #d4edda;
+    padding: 3px;
+    margin: 2px 0;
+    font-size: 0.9em;
+}
+
+.day-matches {
+    margin-top: 5px;
+}

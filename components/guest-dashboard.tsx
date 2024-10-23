@@ -1,40 +1,118 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { UpcomingMatch } from '@/components/upcoming-match';
 import { StandingsTable } from '@/components/standings-table';
+import { TournamentCalendar } from '@/components/tournament-calendar';
 import { ChevronLeft } from 'lucide-react';
+import { getMatchesByTournament, getTeamsByTournament } from '@/lib/firestore';
+import { useToast } from "@/components/ui/use-toast";
 
 export function GuestDashboard({ tournament, onBack }) {
-  const [upcomingMatches, setUpcomingMatches] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [scheduledMatches, setScheduledMatches] = useState({});
   const [standings, setStandings] = useState([]);
+  const { toast } = useToast();
+
+  const fetchTournamentData = useCallback(async () => {
+    try {
+      const [fetchedMatches, fetchedTeams] = await Promise.all([
+        getMatchesByTournament(tournament.id),
+        getTeamsByTournament(tournament.id)
+      ]);
+      setMatches(fetchedMatches);
+      setTeams(fetchedTeams);
+
+      // Initialize scheduledMatches
+      const scheduled = {};
+      fetchedMatches.forEach(match => {
+        if (match.scheduledDate) {
+          const date = new Date(match.scheduledDate).toISOString().split('T')[0];
+          if (!scheduled[date]) scheduled[date] = [];
+          scheduled[date].push(match);
+        }
+      });
+      setScheduledMatches(scheduled);
+
+      // Calculate standings
+      const standingsData = fetchedTeams.map(team => {
+        const teamMatches = fetchedMatches.filter(match => 
+          match.teamA === team.id || match.teamB === team.id
+        );
+        
+        let wins = 0;
+        let losses = 0;
+        let ties = 0;
+        let gf = 0;
+        let ga = 0;
+        let pins = 0;
+
+        teamMatches.forEach(match => {
+          if (match.isCompleted) {
+            const isTeamA = match.teamA === team.id;
+            const teamScore = isTeamA ? match.score.teamA : match.score.teamB;
+            const opponentScore = isTeamA ? match.score.teamB : match.score.teamA;
+            
+            gf += teamScore;
+            ga += opponentScore;
+            pins += isTeamA ? match.pins.teamA : match.pins.teamB;
+
+            if (teamScore > opponentScore) {
+              wins++;
+            } else if (teamScore < opponentScore) {
+              losses++;
+            } else {
+              ties++;
+            }
+          }
+        });
+
+        return {
+          id: team.id,
+          name: team.name,
+          wins,
+          losses,
+          ties,
+          gf,
+          ga,
+          pins,
+        };
+      });
+
+      // Sort standings
+      standingsData.sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (b.ties !== a.ties) return b.ties - a.ties;
+        const aGoalDiff = a.gf - a.ga;
+        const bGoalDiff = b.gf - b.ga;
+        if (bGoalDiff !== aGoalDiff) return bGoalDiff - aGoalDiff;
+        return b.gf - a.gf;
+      });
+
+      setStandings(standingsData);
+    } catch (error) {
+      console.error("Error fetching tournament data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tournament data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [tournament.id, toast]);
 
   useEffect(() => {
-    // In a real application, you would fetch this data from your backend based on the selected tournament
-    const fetchTournamentData = async () => {
-      // Simulating API call
-      const matchesData = [
-        { teamA: 'Team A', teamB: 'Team B', date: 'March 15, 2025', time: '7:30 PM EST' },
-        { teamA: 'Team C', teamB: 'Team D', date: 'March 16, 2025', time: '6:00 PM EST' },
-        { teamA: 'Team E', teamB: 'Team F', date: 'March 17, 2025', time: '8:00 PM EST' },
-      ];
-
-      const standingsData = [
-        { id: 1, name: 'Team A', wins: 10, ties: 2, losses: 3, gf: 30, ga: 15, pins: 45, streak: { type: 'win', count: 3 } },
-        { id: 2, name: 'Team B', wins: 8, ties: 4, losses: 3, gf: 25, ga: 18, pins: 40, streak: { type: 'loss', count: 2 } },
-        { id: 3, name: 'Team C', wins: 7, ties: 3, losses: 5, gf: 22, ga: 20, pins: 38, streak: { type: 'win', count: 1 } },
-      ];
-
-      setUpcomingMatches(matchesData);
-      setStandings(standingsData);
-    };
-
     if (tournament) {
       fetchTournamentData();
     }
-  }, [tournament]);
+  }, [tournament, fetchTournamentData]);
+
+  const upcomingMatches = matches
+    .filter(match => !match.isCompleted && match.scheduledDate)
+    .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))
+    .slice(0, 1);
 
   return (
     <div className="space-y-8">
@@ -46,7 +124,7 @@ export function GuestDashboard({ tournament, onBack }) {
       </div>
       
       <section>
-        <h3 className="text-xl font-semibold mb-4">Upcoming Matches</h3>
+        <h3 className="text-xl font-semibold mb-4">Next Match</h3>
         {upcomingMatches.map((match, index) => (
           <Card key={index} className="mb-4">
             <CardContent className="p-4">
@@ -61,6 +139,20 @@ export function GuestDashboard({ tournament, onBack }) {
         <Card>
           <CardContent className="p-4">
             <StandingsTable standings={standings} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <h3 className="text-xl font-semibold mb-4">Tournament Schedule</h3>
+        <Card>
+          <CardContent className="p-4">
+            <TournamentCalendar 
+              matches={matches}
+              isEditing={false}
+              scheduledMatches={scheduledMatches}
+              setScheduledMatches={setScheduledMatches}
+            />
           </CardContent>
         </Card>
       </section>
