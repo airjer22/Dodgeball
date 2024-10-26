@@ -3,12 +3,12 @@ import { getAuth, updateProfile } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCCphhlXzp5Bjh5DPQX_8K8TjmqJrD5YW0",
-  authDomain: "three-pin-dodgeball.firebaseapp.com",
-  projectId: "three-pin-dodgeball",
-  storageBucket: "three-pin-dodgeball.appspot.com",
-  messagingSenderId: "318431712463",
-  appId: "1:318431712463:web:49badd9c3f3731949953ba"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
