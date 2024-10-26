@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
@@ -15,7 +15,7 @@ interface Match {
   id: string;
   teamAName: string;
   teamBName: string;
-  scheduledDate?: string;
+  scheduledDate: string | undefined;
   scheduledTime?: string;
   isCompleted?: boolean;
 }
@@ -28,8 +28,8 @@ interface TournamentCalendarProps {
   matches: Match[];
   isEditing: boolean;
   scheduledMatches: ScheduledMatches;
-  setScheduledMatches: (matches: ScheduledMatches) => void;
-  setUnscheduledMatches: (matches: Match[]) => void;
+  setScheduledMatches: Dispatch<SetStateAction<ScheduledMatches>>;
+  setUnscheduledMatches: Dispatch<SetStateAction<Match[]>>;
 }
 
 export function TournamentCalendar({ 
@@ -70,13 +70,13 @@ export function TournamentCalendar({
   };
 
   const handleRemoveMatch = (match: Match, dayKey: string) => {
-    setScheduledMatches((prev: ScheduledMatches) => {
+    setScheduledMatches((prev) => {
       const newScheduledMatches = { ...prev };
       newScheduledMatches[dayKey] = newScheduledMatches[dayKey].filter((m: Match) => m.id !== match.id);
       return newScheduledMatches;
     });
 
-    setUnscheduledMatches((prev: Match[]) => [...prev, { ...match, scheduledDate: null }]);
+    setUnscheduledMatches((prev) => [...prev, { ...match, scheduledDate: undefined }]);
   };
 
   const handleMatchClick = (match: Match) => {
@@ -97,7 +97,7 @@ export function TournamentCalendar({
 
     const updatedMatch = { ...selectedMatch, scheduledTime: selectedTime };
 
-    setScheduledMatches((prev: ScheduledMatches) => {
+    setScheduledMatches((prev) => {
       const newScheduledMatches = { ...prev };
       if (!newScheduledMatches[dayKey]) {
         newScheduledMatches[dayKey] = [];
@@ -111,7 +111,7 @@ export function TournamentCalendar({
       return newScheduledMatches;
     });
 
-    setUnscheduledMatches((prev: Match[]) => prev.filter((m: Match) => m.id !== updatedMatch.id));
+    setUnscheduledMatches((prev) => prev.filter((m) => m.id !== updatedMatch.id));
     setIsTimeDialogOpen(false);
     setSelectedMatch(null);
   };
