@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Eye } from 'lucide-react';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from '@/components/ui/use-toast';
 import { deleteTournament } from '@/lib/firestore';
 import {
   AlertDialog,
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 import { motion } from 'framer-motion';
 
 interface Tournament {

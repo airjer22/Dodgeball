@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -19,8 +19,9 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
   const router = useRouter();
 
   useEffect(() => {
-    setDate(new Date(date.getFullYear(), date.getMonth(), 1));
-  }, []);
+    const initialDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    setDate(initialDate);
+  }, []); // Empty dependency array since we only want this to run once on mount
 
   const handleDrop = (e, day) => {
     e.preventDefault();
