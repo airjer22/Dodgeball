@@ -11,9 +11,36 @@ import { motion } from 'framer-motion';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function TournamentCalendar({ matches, isEditing, scheduledMatches, setScheduledMatches, setUnscheduledMatches }) {
+interface Match {
+  id: string;
+  teamAName: string;
+  teamBName: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  isCompleted?: boolean;
+}
+
+interface ScheduledMatches {
+  [key: string]: Match[];
+}
+
+interface TournamentCalendarProps {
+  matches: Match[];
+  isEditing: boolean;
+  scheduledMatches: ScheduledMatches;
+  setScheduledMatches: (matches: ScheduledMatches) => void;
+  setUnscheduledMatches: (matches: Match[]) => void;
+}
+
+export function TournamentCalendar({ 
+  matches, 
+  isEditing, 
+  scheduledMatches, 
+  setScheduledMatches, 
+  setUnscheduledMatches 
+}: TournamentCalendarProps) {
   const [date, setDate] = useState(new Date());
-  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [isTimeDialogOpen, setIsTimeDialogOpen] = useState(false);
   const [selectedTime, setSelectedTime] = useState('12:00');
   const router = useRouter();
@@ -21,9 +48,9 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
   useEffect(() => {
     const initialDate = new Date(date.getFullYear(), date.getMonth(), 1);
     setDate(initialDate);
-  }, []); // Empty dependency array since we only want this to run once on mount
+  }, [date]);
 
-  const handleDrop = (e, day) => {
+  const handleDrop = (e: React.DragEvent, day: Date) => {
     e.preventDefault();
     if (!isEditing) return;
 
@@ -34,25 +61,25 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
     setIsTimeDialogOpen(true);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
-  const handleRemoveMatch = (match, dayKey) => {
-    setScheduledMatches(prev => {
+  const handleRemoveMatch = (match: Match, dayKey: string) => {
+    setScheduledMatches((prev: ScheduledMatches) => {
       const newScheduledMatches = { ...prev };
-      newScheduledMatches[dayKey] = newScheduledMatches[dayKey].filter(m => m.id !== match.id);
+      newScheduledMatches[dayKey] = newScheduledMatches[dayKey].filter((m: Match) => m.id !== match.id);
       return newScheduledMatches;
     });
 
-    setUnscheduledMatches(prev => [...prev, { ...match, scheduledDate: null }]);
+    setUnscheduledMatches((prev: Match[]) => [...prev, { ...match, scheduledDate: null }]);
   };
 
-  const handleMatchClick = (match) => {
+  const handleMatchClick = (match: Match) => {
     if (isEditing) {
       setSelectedMatch(match);
       setSelectedTime(match.scheduledTime || '12:00');
@@ -63,15 +90,19 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
   };
 
   const handleTimeConfirm = () => {
+    if (!selectedMatch) return;
+
     const dayKey = selectedMatch.scheduledDate;
+    if (!dayKey) return;
+
     const updatedMatch = { ...selectedMatch, scheduledTime: selectedTime };
 
-    setScheduledMatches(prev => {
+    setScheduledMatches((prev: ScheduledMatches) => {
       const newScheduledMatches = { ...prev };
       if (!newScheduledMatches[dayKey]) {
         newScheduledMatches[dayKey] = [];
       }
-      const existingIndex = newScheduledMatches[dayKey].findIndex(m => m.id === updatedMatch.id);
+      const existingIndex = newScheduledMatches[dayKey].findIndex((m: Match) => m.id === updatedMatch.id);
       if (existingIndex !== -1) {
         newScheduledMatches[dayKey][existingIndex] = updatedMatch;
       } else {
@@ -80,7 +111,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
       return newScheduledMatches;
     });
 
-    setUnscheduledMatches(prev => prev.filter(m => m.id !== updatedMatch.id));
+    setUnscheduledMatches((prev: Match[]) => prev.filter((m: Match) => m.id !== updatedMatch.id));
     setIsTimeDialogOpen(false);
     setSelectedMatch(null);
   };
@@ -95,7 +126,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
     visible: { opacity: 1, scale: 1 }
   };
 
-  const renderCell = (day) => {
+  const renderCell = (day: Date) => {
     const dayKey = day.toISOString().split('T')[0];
     const matchesForDay = scheduledMatches[dayKey] || [];
     const isCurrentMonth = day.getMonth() === date.getMonth();
@@ -115,7 +146,7 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
           {day.getDate()}
         </div>
         <div className="overflow-y-auto h-[calc(100%-1.5rem)]">
-          {matchesForDay.map((match, index) => (
+          {matchesForDay.map((match: Match, index: number) => (
             <Card 
               key={`${match.id}-${index}`} 
               className={`mt-1 ${match.isCompleted ? 'bg-green-500' : 'bg-primary'} text-primary-foreground cursor-pointer hover-scale`}
@@ -151,7 +182,6 @@ export function TournamentCalendar({ matches, isEditing, scheduledMatches, setSc
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
     const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
     const startDay = startDate.getDay();
-    const totalDays = endDate.getDate();
 
     const calendarDays = [];
     for (let i = 0; i < 42; i++) {
