@@ -1,84 +1,88 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/sidebar';
-import { MatchList } from '@/components/match-list';
-import { TournamentCalendar } from '@/components/tournament-calendar';
-import { Button } from "@/components/ui/button";
-import { useTournament } from '@/contexts/TournamentContext';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+
+interface Match {
+  id: string;
+  date: string;
+  team1: string;
+  team2: string;
+  score1: number;
+  score2: number;
+  tournamentId: string;
+}
 
 export default function CalendarPage() {
-  const [matches, setMatches] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [scheduledMatches, setScheduledMatches] = useState({});
-  const { selectedTournament } = useTournament();
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [matches, setMatches] = useState<Match[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (selectedTournament) {
-      // In a real application, you would fetch this data from your backend based on the selected tournament
-      const dummyGeneratedMatchups = [
-        { id: 1, teams: ['Flashy Friday Falafels', "Mr. Hendypin's Minions"], date: null },
-        { id: 2, teams: ['Demons Dodging Big Balls', 'Totoro Clan'], date: null },
-        { id: 3, teams: ['The Bounties', 'Mini Milo'], date: null },
-        { id: 4, teams: ['Wicked Nuggets', 'Fat Teddies'], date: null },
-        { id: 5, teams: ['Dodgeball Dolphins', 'Banana Republic'], date: null },
-        { id: 6, teams: ['Fanum Taxers', 'Freezing Cold Cheetos'], date: null },
-        { id: 7, teams: ['Goose Frappe', 'In A Pickle'], date: null },
-        { id: 8, teams: ['Dodging Pickle Demons', 'Flashy Friday Falafels'], date: null },
-      ];
+    const fetchMatches = async () => {
+      if (!user || !date) return;
 
-      setMatches(dummyGeneratedMatchups);
-    }
-  }, [selectedTournament]);
+      try {
+        const formattedDate = format(date, 'yyyy-MM-dd');
+        const matchesRef = collection(db, 'matches');
+        const q = query(matchesRef, where('date', '==', formattedDate));
+        const querySnapshot = await getDocs(q);
+        
+        const matchesData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Match[];
 
-  const handleSaveCalendar = () => {
-    // Implement save logic here
-    console.log('Calendar saved');
-    setIsEditing(false);
-  };
+        setMatches(matchesData);
+      } catch (error) {
+        console.error('Error fetching matches:', error);
+      }
+    };
 
-  const handleEditCalendar = () => {
-    setIsEditing(true);
-  };
+    fetchMatches();
+  }, [date, user]);
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 p-8 overflow-hidden">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Calendar</h1>
-          {selectedTournament && (
-            <div>
-              {isEditing ? (
-                <Button onClick={handleSaveCalendar}>Save Calendar</Button>
-              ) : (
-                <Button onClick={handleEditCalendar}>Edit Calendar</Button>
-              )}
-            </div>
-          )}
-        </div>
-        {selectedTournament ? (
-          <div className="flex h-[calc(100vh-12rem)] space-x-4">
-            <MatchList matches={matches} scheduledMatches={scheduledMatches} />
-            <TournamentCalendar 
-              matches={matches} 
-              isEditing={isEditing} 
-              scheduledMatches={scheduledMatches}
-              setScheduledMatches={setScheduledMatches}
-            />
+    <div className="flex flex-col md:flex-row gap-8 p-8">
+      <div className="w-full md:w-auto">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={setDate}
+          className="rounded-md border shadow"
+        />
+      </div>
+      <div className="flex-1">
+        <h2 className="text-xl font-semibold mb-4">
+          Matches for {date ? format(date, 'MMMM d, yyyy') : 'Selected Date'}
+        </h2>
+        {matches.length > 0 ? (
+          <div className="space-y-4">
+            {matches.map((match) => (
+              <Card key={match.id} className="p-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex-1">
+                    <p className="font-medium">{match.team1}</p>
+                  </div>
+                  <div className="px-4 font-bold">
+                    {match.score1} - {match.score2}
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="font-medium">{match.team2}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         ) : (
-          <Alert variant="warning">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No tournament selected</AlertTitle>
-            <AlertDescription>
-              Please select a tournament from the dashboard to view and manage the calendar.
-            </AlertDescription>
-          </Alert>
+          <p className="text-muted-foreground">No matches scheduled for this date.</p>
         )}
-      </main>
+      </div>
     </div>
   );
 }
