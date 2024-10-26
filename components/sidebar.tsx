@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Users, Calendar, Moon, Sun, LogOut, BarChart2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { Trophy } from 'lucide-react';
 import { useTheme } from "next-themes";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from 'firebase/auth';
-import { auth } from "@/lib/firebase";
+import { auth } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 
 interface SidebarProps {

@@ -2,5 +2,25 @@
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+  NODE_VERSION = "18"
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Explicitly tell Netlify not to use Python
+  PYTHON_VERSION = "off"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+
+[build.processing]
+  skip_processing = true
+
+# Explicitly declare we're using Node.js
+[context.production]
+  environment = { NODE_VERSION = "18" }
+
+[context.deploy-preview]
+  environment = { NODE_VERSION = "18" }
