@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Users, Calendar, GitBranch, Moon, Sun, LogOut, BarChart2 } from 'lucide-react';
-import { Button } from "@/components/ui/button"
+import { Home, Users, Calendar, Moon, Sun, LogOut, BarChart2 } from 'lucide-react';
+import { Button } from "'components/ui/button"'
 import { Trophy } from 'lucide-react';
 import { useTheme } from "next-themes"
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from ''contexts/AuthContext'';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth } from ''lib/firebase'';
 import { motion } from 'framer-motion';
 
 export function Sidebar({ tournamentId }) {
@@ -72,7 +72,7 @@ export function Sidebar({ tournamentId }) {
             <motion.div variants={linkVariants}>
               <Link href={`/dashboard/${tournamentId}`} passHref>
                 <Button
-                  variant={isActive(`/dashboard/${tournamentId}`) && !isActive('/teams') && !isActive('/calendar') && !isActive('/bracket') ? 'secondary' : 'ghost'}
+                  variant={isActive(`/dashboard/${tournamentId}`) && !isActive('/teams') && !isActive('/calendar') ? 'secondary' : 'ghost'}
                   className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
                 >
                   <BarChart2 className="h-5 w-5 mr-3" />
@@ -99,17 +99,6 @@ export function Sidebar({ tournamentId }) {
                 >
                   <Calendar className="h-5 w-5 mr-3" />
                   Calendar
-                </Button>
-              </Link>
-            </motion.div>
-            <motion.div variants={linkVariants}>
-              <Link href={`/dashboard/${tournamentId}/bracket`} passHref>
-                <Button
-                  variant={isActive('/bracket') ? 'secondary' : 'ghost'}
-                  className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
-                >
-                  <GitBranch className="h-5 w-5 mr-3" />
-                  Bracket
                 </Button>
               </Link>
             </motion.div>
