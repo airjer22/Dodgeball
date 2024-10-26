@@ -114,7 +114,7 @@ export function TournamentList({ tournaments, onDeleteTournament, onSelectTourna
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete the tournament
-                          "{tournament.name}" and all of its associated data, including teams and matches.
+                          &ldquo;{tournament.name}&rdquo; and all of its associated data, including teams and matches.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
