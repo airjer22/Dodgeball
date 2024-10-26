@@ -16,12 +16,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import { motion } from 'framer-motion';
 
-export function TournamentList({ tournaments, onDeleteTournament }) {
+interface Tournament {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  [key: string]: any;
+}
+
+interface TournamentListProps {
+  tournaments: Tournament[];
+  onDeleteTournament: (id: string) => void;
+  onSelectTournament: (tournament: Tournament) => void;
+}
+
+export function TournamentList({ tournaments, onDeleteTournament, onSelectTournament }: TournamentListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [tournamentToDelete, setTournamentToDelete] = useState(null);
+  const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -50,8 +64,8 @@ export function TournamentList({ tournaments, onDeleteTournament }) {
     }
   };
 
-  const handleViewDashboard = (tournament) => {
-    router.push(`/dashboard/${tournament.id}`);
+  const handleViewDashboard = (tournament: Tournament) => {
+    onSelectTournament(tournament);
   };
 
   const listVariants = {
@@ -100,7 +114,7 @@ export function TournamentList({ tournaments, onDeleteTournament }) {
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete the tournament
-                          &quot;{tournament.name}&quot; and all of its associated data, including teams and matches.
+                          "{tournament.name}" and all of its associated data, including teams and matches.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

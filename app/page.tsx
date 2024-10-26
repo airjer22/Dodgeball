@@ -7,19 +7,25 @@ import { TournamentList } from '@/components/tournament-list';
 import { CreateTournamentForm } from '@/components/create-tournament-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllTournaments, deleteTournament } from '@/lib/firestore';
-import { useToast } from "@/components/ui/use-toast"
-import { useTheme } from "next-themes"
+import { useToast } from "@/components/ui/use-toast";
+
+interface Tournament {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  [key: string]: any;
+}
 
 export default function Home() {
-  const [tournaments, setTournaments] = useState([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { theme } = useTheme();
 
   const fetchTournaments = useCallback(async () => {
     try {
-      const fetchedTournaments = await getAllTournaments();
+      const fetchedTournaments = await getAllTournaments() as Tournament[];
       setTournaments(fetchedTournaments);
     } catch (error) {
       console.error("Error fetching tournaments:", error);
@@ -39,7 +45,7 @@ export default function Home() {
     }
   }, [user, loading, router, fetchTournaments]);
 
-  const handleCreateTournament = (newTournament) => {
+  const handleCreateTournament = (newTournament: Tournament) => {
     setTournaments([newTournament, ...tournaments]);
     toast({
       title: "Success",
@@ -47,11 +53,11 @@ export default function Home() {
     });
   };
 
-  const handleSelectTournament = (tournament) => {
+  const handleSelectTournament = (tournament: Tournament) => {
     router.push(`/dashboard/${tournament.id}`);
   };
 
-  const handleDeleteTournament = async (tournamentId) => {
+  const handleDeleteTournament = async (tournamentId: string) => {
     try {
       await deleteTournament(tournamentId);
       setTournaments(tournaments.filter(t => t.id !== tournamentId));
@@ -71,7 +77,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <p className="mb-4">Loading... Please wait.</p>
           <p>Auth state: {loading ? 'Loading' : user ? 'Authenticated' : 'Not authenticated'}</p>
@@ -81,7 +87,7 @@ export default function Home() {
   }
 
   return (
-    <div className={`flex flex-col items-center justify-center min-h-screen p-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
       {!user ? (
         <LoginForm />
       ) : (
@@ -92,7 +98,10 @@ export default function Home() {
             onSelectTournament={handleSelectTournament}
             onDeleteTournament={handleDeleteTournament}
           />
-          <CreateTournamentForm onCreateTournament={handleCreateTournament} />
+          <CreateTournamentForm 
+            onCreateTournament={handleCreateTournament}
+            onCancel={() => {}} // Add empty onCancel handler as required by the component
+          />
         </div>
       )}
     </div>
