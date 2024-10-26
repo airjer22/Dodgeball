@@ -12,9 +12,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  node_bundler = "esbuild"
-
 [build.processing]
   skip_processing = true
 
