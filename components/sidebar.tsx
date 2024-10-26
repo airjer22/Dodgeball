@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Users, Calendar, Moon, Sun, LogOut, BarChart2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { Trophy } from 'lucide-react';
 import { useTheme } from "next-themes";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from 'firebase/auth';
-import { auth } from "@/lib/firebase";
+import { auth } from '@/lib/firebase';
 import { motion } from 'framer-motion';
 
 interface SidebarProps {
@@ -28,7 +28,7 @@ export function Sidebar({ tournamentId }: SidebarProps) {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.push('/');
+      router.push(&apos;/&apos;);
     } catch (error) {
       console.error("Error signing out: ", error);
     }
@@ -40,7 +40,7 @@ export function Sidebar({ tournamentId }: SidebarProps) {
 
   const sidebarVariants = {
     hidden: { x: -300 },
-    visible: { x: 0, transition: { type: 'spring', stiffness: 100 } }
+    visible: { x: 0, transition: { type: &apos;spring&apos;, stiffness: 100 } }
   };
 
   const linkVariants = {
@@ -63,7 +63,7 @@ export function Sidebar({ tournamentId }: SidebarProps) {
         <motion.div variants={linkVariants}>
           <Link href="/dashboard" passHref>
             <Button
-              variant={isActive('/dashboard') && !tournamentId ? 'secondary' : 'ghost'}
+              variant={isActive(&apos;/dashboard&apos;) && !tournamentId ? &apos;secondary&apos; : &apos;ghost&apos;}
               className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
             >
               <Home className="h-5 w-5 mr-3" />
@@ -76,7 +76,7 @@ export function Sidebar({ tournamentId }: SidebarProps) {
             <motion.div variants={linkVariants}>
               <Link href={`/dashboard/${tournamentId}`} passHref>
                 <Button
-                  variant={isActive(`/dashboard/${tournamentId}`) && !isActive('/teams') && !isActive('/calendar') ? 'secondary' : 'ghost'}
+                  variant={isActive(`/dashboard/${tournamentId}`) && !isActive(&apos;/teams&apos;) && !isActive(&apos;/calendar&apos;) ? &apos;secondary&apos; : &apos;ghost&apos;}
                   className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
                 >
                   <BarChart2 className="h-5 w-5 mr-3" />
@@ -87,7 +87,7 @@ export function Sidebar({ tournamentId }: SidebarProps) {
             <motion.div variants={linkVariants}>
               <Link href={`/dashboard/${tournamentId}/teams`} passHref>
                 <Button
-                  variant={isActive('/teams') ? 'secondary' : 'ghost'}
+                  variant={isActive(&apos;/teams&apos;) ? &apos;secondary&apos; : &apos;ghost&apos;}
                   className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
                 >
                   <Users className="h-5 w-5 mr-3" />
@@ -98,7 +98,7 @@ export function Sidebar({ tournamentId }: SidebarProps) {
             <motion.div variants={linkVariants}>
               <Link href={`/dashboard/${tournamentId}/calendar`} passHref>
                 <Button
-                  variant={isActive('/calendar') ? 'secondary' : 'ghost'}
+                  variant={isActive(&apos;/calendar&apos;) ? &apos;secondary&apos; : &apos;ghost&apos;}
                   className="w-full justify-start px-6 py-3 mb-2 hover:bg-primary/10"
                 >
                   <Calendar className="h-5 w-5 mr-3" />

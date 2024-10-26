@@ -34,7 +34,7 @@ interface TournamentListProps {
 }
 
 export function TournamentList({ tournaments, onDeleteTournament, onSelectTournament }: TournamentListProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(&apos;&apos;);
   const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null);
   const router = useRouter();
   const { toast } = useToast();
